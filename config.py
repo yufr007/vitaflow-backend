@@ -3,7 +3,8 @@ from typing import Optional, List
 
 class Settings(BaseSettings):
     # MongoDB
-    MONGODB_URL: str
+    MONGODB_URL: Optional[str] = None
+    DATABASE_URL: Optional[str] = None  # fallback alias support
     DATABASE_NAME: str = "vitaflow"
     
     # JWT
@@ -40,6 +41,13 @@ class Settings(BaseSettings):
         if self.CORS_ORIGINS == "*":
             return ["*"]
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+    def get_mongodb_url(self) -> str:
+        """Return MongoDB URL, supporting MONGODB_URL and DATABASE_URL aliases"""
+        url = self.MONGODB_URL or self.DATABASE_URL
+        if not url:
+            raise ValueError("Missing MongoDB connection string: set MONGODB_URL or DATABASE_URL")
+        return url
     
     class Config:
         env_file = ".env"

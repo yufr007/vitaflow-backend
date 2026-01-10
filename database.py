@@ -13,7 +13,7 @@ async def init_db():
     global client, database
     
     try:
-        client = AsyncIOMotorClient(settings.MONGODB_URL)
+        client = AsyncIOMotorClient(settings.get_mongodb_url())
         database = client[settings.DATABASE_NAME]
         
         # Import models
