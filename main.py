@@ -19,18 +19,10 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Configuration with your actual domain
-origins = [
-    "http://localhost:5173",  # Local Vite dev
-    "http://localhost:3000",  # Local Next.js
-    "https://vitaflow.fitness",  # Production domain
-    "https://www.vitaflow.fitness",  # WWW subdomain
-    "https://*.vercel.app",  # Vercel preview deployments (for testing)
-]
-
+# CORS Configuration using settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if settings.ENV == "production" else ["*"],
+    allow_origins=settings.get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
