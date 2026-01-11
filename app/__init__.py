@@ -1,1 +1,1 @@
-# VitaFlow Application Package
+"""VitaFlow App Package."""
