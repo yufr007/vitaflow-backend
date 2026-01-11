@@ -89,14 +89,17 @@ app = FastAPI(
 )
 
 # CORS middleware - Allow frontend origins
+# Frontend is on Vercel at vitaflow.fitness
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Production frontend
         "https://vitaflow.fitness",
         "https://www.vitaflow.fitness",
+        # Vercel preview/deployment URLs
         "https://vitaflow-xi.vercel.app",
-        "https://vitaflow-668nm.ondigitalocean.app",
-        "https://vitaflow-backend-bvfso.ondigitalocean.app",
+        "https://*.vercel.app",
+        # Local development
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:19006",  # Expo
