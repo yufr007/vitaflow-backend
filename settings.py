@@ -14,9 +14,7 @@ from urllib.parse import urlparse, urlunparse
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # MongoDB - REQUIRED from environment
-    DATABASE_URL: str = Field(..., env="DATABASE_URL", description="MongoDB connection string (required)")
-    DATABASE_NAME: str = Field(default="vitaflow_prod", env="DATABASE_NAME")
+    # MongoDB - REQUIRED from MONGODB_URL environment variable    DATABASE_URL: str = Field(..., env="MONGODB_URL", description="MongoDB connection string from MONGODB_URL env var (required)")    DATABASE_NAME: str = Field(default="vitaflow_prod", env="DATABASE_NAME")
     
     # JWT - REQUIRED from environment
     SECRET_KEY: str = Field(..., env="SECRET_KEY", description="JWT signing secret (required)")
