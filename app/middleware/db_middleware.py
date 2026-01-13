@@ -34,7 +34,7 @@ class LazyDatabaseMiddleware(BaseHTTPMiddleware):
             try:
                 logger.info("Lazy initializing MongoDB connection...")
                 await Database.connect_db(
-                    database_url=settings.DATABASE_URL,
+                    database_url=settings.MONGODB_URL,
                     database_name=settings.DATABASE_NAME
                 )
             except Exception as e:

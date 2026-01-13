@@ -136,6 +136,9 @@ class EmailService:
         Returns:
             True if email sent successfully, False otherwise
         """
+        # [DEMO ONLY] Log OTP to console for easy access
+        print(f"\n[DEMO] OTP for {to_email}: {otp_code}\n")
+        
         try:
             html_content = self.create_otp_email_html(name, otp_code)
 

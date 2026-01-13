@@ -14,7 +14,10 @@ from urllib.parse import urlparse, urlunparse
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # MongoDB - REQUIRED from MONGODB_URL environment variable    DATABASE_URL: str = Field(..., env="MONGODB_URL", description="MongoDB connection string from MONGODB_URL env var (required)")    DATABASE_NAME: str = Field(default="vitaflow_prod", env="DATABASE_NAME")
+    # MongoDB
+    MONGODB_URL: str = Field(..., env="MONGODB_URL", description="MongoDB connection string (required)")
+    DATABASE_NAME: str = Field(default="vitaflow", env="DATABASE_NAME")
+
     
     # JWT - REQUIRED from environment
     SECRET_KEY: str = Field(..., env="SECRET_KEY", description="JWT signing secret (required)")
@@ -137,8 +140,8 @@ class Settings(BaseSettings):
     
     @property
     def is_mongodb(self) -> bool:
-        """Check if using MongoDB (vs PostgreSQL)."""
-        return self.DATABASE_URL.startswith("mongodb")
+        """Check if using MongoDB."""
+        return self.MONGODB_URL.startswith("mongodb")
     
     @property
     def azure_openai_configured(self) -> bool:
@@ -163,8 +166,8 @@ class Settings(BaseSettings):
     
     def validate_required_settings(self) -> None:
         """Validate that required settings are configured."""
-        if not self.DATABASE_URL:
-            raise ValueError("DATABASE_URL must be set")
+        if not self.MONGODB_URL:
+            raise ValueError("MONGODB_URL must be set")
         if not self.SECRET_KEY:
             raise ValueError("SECRET_KEY must be changed from default in production")
         if not self.GEMINI_API_KEY and not self.AZURE_OPENAI_KEY:

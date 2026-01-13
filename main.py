@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
     # This makes the /health/detailed endpoint ready to use immediately
     # If initialization fails, lazy initialization will be used as fallback
     try:
-        await Database.connect_db(settings.DATABASE_URL, settings.DATABASE_NAME)
+        await Database.connect_db(settings.MONGODB_URL, settings.DATABASE_NAME)
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.warning(f"Failed to initialize database at startup: {e}")
