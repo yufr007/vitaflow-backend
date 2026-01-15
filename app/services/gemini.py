@@ -209,7 +209,7 @@ Return ONLY a valid JSON object with these exact fields (no markdown, no code bl
                 "fitness_level": user_profile.get('fitness_level', 'beginner'),
                 "goal": goal,
                 "equipment": equipment,
-                "time_available": user_profile.get('time_available_minutes', 45)
+                "time_available": user_profile.get('time_available', user_profile.get('time_available_minutes', 45))
             }
             cache_key = cache_service.generate_key("workout", cache_params)
             cached = await cache_service.get(cache_key)
@@ -227,7 +227,7 @@ Create a premium 7-day workout plan for:
 - Fitness level: {user_profile.get('fitness_level', 'beginner')}
 - Goal: {goal}
 - Equipment: {equipment}
-- Time per session: {user_profile.get('time_available_minutes', 45)} minutes
+- Time per session: {user_profile.get('time_available', user_profile.get('time_available_minutes', 45))} minutes
 
 Your output MUST reflect your coaching persona in the "notes" and "weekly_summary".
 
@@ -299,7 +299,7 @@ Return ONLY valid JSON (no markdown):
         
         try:
             budget = user_profile.get('budget_per_week', 150)
-            goal = user_profile.get('fitness_goal', 'balanced diet')
+            goal = user_profile.get('goal', user_profile.get('fitness_goal', 'balanced diet'))
             
             prompt = f"""You are an expert Personal Chef and Nutritionist. Design a 7-day meal plan that feels curated and catered.
 

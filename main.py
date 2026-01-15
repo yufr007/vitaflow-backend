@@ -54,7 +54,11 @@ from app.routes import (
     coaching,
     subscription,
     voice_coaching,
-    nutrition_scan
+    nutrition_scan,
+    devices,
+    evolution,
+    flowstate,
+    realtime
 )
 from app.routes import recovery
 
@@ -67,7 +71,7 @@ async def lifespan(app: FastAPI):
     # This makes the /health/detailed endpoint ready to use immediately
     # If initialization fails, lazy initialization will be used as fallback
     try:
-        await Database.connect_db(settings.MONGODB_URL, settings.DATABASE_NAME)
+        await Database.connect_db(settings.DATABASE_URL, settings.DATABASE_NAME)
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.warning(f"Failed to initialize database at startup: {e}")
@@ -88,20 +92,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware - Allow frontend origins
-# Frontend is on Vercel at vitaflow.fitness
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # Production frontend
         "https://vitaflow.fitness",
         "https://www.vitaflow.fitness",
-        # Vercel preview/deployment URLs
-        "https://vitaflow-xi.vercel.app",
         "https://*.vercel.app",
-        # Local development
+        "https://vitaflow-668nm.ondigitalocean.app",
+        "https://vitaflow-backend-bvfso.ondigitalocean.app",
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:4002",
         "http://localhost:19006",  # Expo
         "http://localhost:8081",   # React Native Metro
     ],
@@ -213,6 +215,10 @@ app.include_router(subscription.router, prefix="/subscription", tags=["Subscript
 app.include_router(recovery.router, prefix="/recovery", tags=["Rest & Recovery"])
 app.include_router(voice_coaching.router)  # Elite tier voice coaching
 app.include_router(nutrition_scan.router)  # Pro/Elite nutrition scanning
+app.include_router(devices.router, prefix="/devices", tags=["Devices"])
+app.include_router(evolution.router, prefix="/evolution", tags=["Evolution AI"])
+app.include_router(flowstate.router, prefix="/flowstate", tags=["Flow State"])
+app.include_router(realtime.router) # WebSocket router (no prefix or tags needed for simple ws)
 
 
 # Root endpoint
@@ -220,7 +226,7 @@ app.include_router(nutrition_scan.router)  # Pro/Elite nutrition scanning
 async def root():
     """API root endpoint."""
     return {
-        "message": "VitaFlow API",
+        "message": "Welcome to VitaFlow API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health"

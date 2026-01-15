@@ -8,12 +8,9 @@ import random
 import string
 from datetime import datetime, timedelta
 from typing import Optional
-import logging
 
 import resend
 from settings import settings
-
-logger = logging.getLogger(__name__)
 
 
 class EmailService:
@@ -139,19 +136,6 @@ class EmailService:
         Returns:
             True if email sent successfully, False otherwise
         """
-        # [DEV MODE] Log OTP to console for easy access (no SMTP configured)
-        print(f"\n{'='*60}")
-        print(f"🔐 OTP VERIFICATION CODE")
-        print(f"{'='*60}")
-        print(f"Email: {to_email}")
-        print(f"Name: {name}")
-        print(f"Code: {otp_code}")
-        print(f"Expires: {settings.OTP_EXPIRY_MINUTES} minutes")
-        print(f"{'='*60}\n")
-
-        # Also log to application logs
-        logger.info(f"🔐 OTP generated for {to_email}: {otp_code} (expires in {settings.OTP_EXPIRY_MINUTES} min)")
-
         try:
             html_content = self.create_otp_email_html(name, otp_code)
 

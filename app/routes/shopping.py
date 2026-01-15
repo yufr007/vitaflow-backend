@@ -28,7 +28,7 @@ class GenerateShoppingRequest(BaseModel):
 
 class ShoppingListResponse(BaseModel):
     """Shopping list response."""
-    id: str
+    shopping_list_id: str
     items: list
     store_prices: Optional[Dict] = None
     total_cost: Optional[float] = None
@@ -96,7 +96,7 @@ async def generate_shopping_list(
         await shopping_list.insert()
         
         return ShoppingListResponse(
-            id=str(shopping_id),
+            shopping_list_id=str(shopping_id),
             items=result.get("items", result.get("primary_store", {}).get("items", [])),
             store_prices=result.get("store_prices"),
             total_cost=result.get("total_cost"),

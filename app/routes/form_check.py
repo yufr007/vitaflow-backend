@@ -123,7 +123,7 @@ async def analyze_form(
         await form_check.insert()
         
         return {
-            "id": str(form_check.uid),
+            "form_check_id": str(form_check.uid),
             "form_score": form_check.score,
             "alignment_feedback": form_check.alignment_feedback,
             "rom_feedback": form_check.rom_feedback,

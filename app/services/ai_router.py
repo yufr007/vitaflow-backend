@@ -178,14 +178,18 @@ class AIServiceRouter:
     async def generate_workout(
         self,
         user_profile: Dict[str, Any],
-        duration_minutes: int = 45
+        duration_minutes: Optional[int] = None
     ) -> Dict[str, Any]:
         """Generate personalized workout plan."""
         if not self._gemini_service:
             await self.initialize()
         
+        # Merge duration if provided
+        if duration_minutes:
+            user_profile["time_available"] = duration_minutes
+        
         if self._gemini_service:
-            return await self._gemini_service.generate_workout(user_profile, duration_minutes)
+            return await self._gemini_service.generate_workout(user_profile)
         
         return {"error": "Gemini service not available"}
     
@@ -196,14 +200,22 @@ class AIServiceRouter:
     async def generate_meal_plan(
         self,
         user_profile: Dict[str, Any],
+        dietary_restrictions: Optional[List[str]] = None,
+        budget_per_week: Optional[float] = None,
         days: int = 7
     ) -> Dict[str, Any]:
         """Generate personalized meal plan."""
         if not self._gemini_service:
             await self.initialize()
         
+        # Merge extra parameters into profile
+        if dietary_restrictions:
+            user_profile["dietary_restrictions"] = dietary_restrictions
+        if budget_per_week:
+            user_profile["budget_per_week"] = budget_per_week
+        
         if self._gemini_service:
-            return await self._gemini_service.generate_meal_plan(user_profile, days)
+            return await self._gemini_service.generate_meal_plan(user_profile)
         
         return {"error": "Gemini service not available"}
     
