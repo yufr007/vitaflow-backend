@@ -142,18 +142,75 @@ class GeminiService:
     async def analyze_form_check(
         self,
         image_base64: str,
-        exercise_name: str
+        exercise_name: str,
+        computed_metrics: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """
-        Analyze exercise form using Gemini Vision API with persona.
+        Analyze exercise form using Gemini Vision API.
+        
+        CRITICAL: If computed_metrics are provided, Gemini EXPLAINS them.
+        It does NOT invent new measurements - it interprets real data.
+        
+        Args:
+            image_base64: Base64-encoded image
+            exercise_name: Name of the exercise
+            computed_metrics: Optional pre-computed biomechanics metrics from FormAnalyzer
         """
         if not self.vision_model:
             self.logger.error("Gemini API key not configured")
             return None
         
         try:
-            # Persona: Form and Technique Analysis Specialist (Always Pro Quality for Demo)
-            prompt = f"""You are a specialized Biomechanics and Form Analysis expert. 
+            if computed_metrics:
+                # COMPUTE-THEN-EXPLAIN MODE: Gemini explains real data
+                issues_text = "\n".join([
+                    f"- {issue['type']}: {issue['description']} "
+                    f"(severity: {issue['severity']:.0%}, risk: {issue['risk']})"
+                    for issue in computed_metrics.get('issues', [])
+                ])
+                
+                prompt = f"""You are a fitness coach explaining biomechanics analysis results.
+
+CRITICAL: The following metrics were COMPUTED by our biomechanics engine using research data.
+Do NOT make up different numbers. Your job is to EXPLAIN these results in natural language.
+
+EXERCISE: {exercise_name}
+
+COMPUTED METRICS (from biomechanics analysis):
+- Form Score: {computed_metrics.get('form_score', 0):.0f}/100
+- Risk Level: {computed_metrics.get('risk_level', 'unknown')}
+- Key Measurements: {computed_metrics.get('key_metrics', {})}
+
+DETECTED ISSUES:
+{issues_text if issues_text else "No major issues detected"}
+
+REFERENCE COMPARISON:
+{computed_metrics.get('comparison', 'N/A')}
+
+RESEARCH SUPPORT:
+Analysis supported by: {computed_metrics.get('research_citations', 'VitaFlow Biomechanics Engine')}
+
+Write coaching feedback that:
+1. Acknowledges what they're doing well
+2. Explains the detected issues in plain English (use the descriptions above)
+3. Gives 2-3 specific corrective cues from the issues
+4. Does NOT invent new measurements - use only the data provided above
+
+Return ONLY valid JSON (no markdown):
+{{
+    "form_score": {computed_metrics.get('form_score', 0)},
+    "alignment_feedback": "Explanation of alignment based on computed data",
+    "rom_feedback": "Explanation of range of motion based on computed data",
+    "stability_feedback": "Explanation of stability based on computed data",
+    "corrections": ["Cue 1 from issues above", "Cue 2"],
+    "tips": ["Tip 1", "Tip 2"],
+    "next_step": "Suggested progression/regression"
+}}
+"""
+            else:
+                # FALLBACK MODE: Gemini-only analysis (with warning logged)
+                self.logger.warning("⚠️  No computed metrics - Gemini operating in hallucination mode")
+                prompt = f"""You are a specialized Biomechanics and Form Analysis expert. 
 Analyze this exercise form for {exercise_name}. 
 
 Focus strictly on safety, joint alignment, and efficient force production.
@@ -181,6 +238,7 @@ Return ONLY a valid JSON object with these exact fields (no markdown, no code bl
         except Exception as e:
             self.logger.error(f"Form check analysis error: {str(e)}")
             return None
+
     
     async def generate_workout(
         self,
