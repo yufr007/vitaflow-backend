@@ -28,7 +28,30 @@ class Settings(BaseSettings):
     # Environment
     ENV: str = Field(default="development", env="ENV")
     DEBUG: bool = Field(default=True, env="DEBUG")
-    
+    # CORS
+    CORS_ORIGINS: str = Field(default="", env="CORS_ORIGINS")
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS origins string into list."""
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        
+        # Always allow production domains and localhost for robust connectivity
+        # This ensures the API works even if the environment variable is missing or incomplete
+        default_domains = [
+            "https://vitaflow.fitness",
+            "https://www.vitaflow.fitness",
+            "https://api.vitaflow.fitness",
+            "http://localhost:5173",
+            "http://localhost:3000"
+        ]
+        
+        for domain in default_domains:
+            if domain not in origins:
+                origins.append(domain)
+                
+        return origins
+
     # Gemini AI (for simple features: form check, basic generation)
     GEMINI_API_KEY: str = Field(..., env="GEMINI_API_KEY", description="Google Gemini API key (required)")
     
