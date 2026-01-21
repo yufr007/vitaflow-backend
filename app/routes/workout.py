@@ -5,25 +5,36 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user_id
 from app.models.mongodb import UserDocument, WorkoutDocument
+from app.schemas.workout import WorkoutRequest
 from app.services.ai_router import get_ai_router
 
 router = APIRouter()
 
 @router.post("/generate")
-async def generate_workout(user_id: str = Depends(get_current_user_id)):
+async def generate_workout(
+    request: WorkoutRequest,
+    user_id: str = Depends(get_current_user_id)
+):
     """Generate personalized workout plan and save to MongoDB."""
     user = await UserDocument.find_one(UserDocument.uid == uuid.UUID(user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Update user profile with latest data from request
+    user.fitness_level = request.fitness_level
+    user.goal = request.goal
+    user.equipment = [e.strip() for e in request.equipment.split(',')] if request.equipment else []
+    await user.save()
+
     # Get AI router
     ai_router = await get_ai_router()
     result = await ai_router.generate_workout(
         user_profile={
-            "fitness_level": user.fitness_level or "beginner",
-            "goal": user.goal or "general_fitness",
-            "equipment": user.equipment or [],
-            "tier": user.tier
+            "fitness_level": request.fitness_level,
+            "goal": request.goal,
+            "equipment": request.equipment,
+            "tier": user.tier,
+            "time_available": request.time_available
         }
     )
     

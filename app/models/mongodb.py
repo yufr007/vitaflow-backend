@@ -249,3 +249,163 @@ class RecoveryAssessmentDocument(Document):
                 "recommendation_summary": "You're moderately recovered. Consider light activity today."
             }
         }
+
+
+class SmartDeviceDocument(Document):
+    """Smart device model for MongoDB."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    device_type: str  # smart_scale, hr_monitor, bp_cuff, glucose_monitor, watch
+    device_name: str
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    
+    # Bluetooth
+    ble_address: Optional[str] = None
+    
+    # Status
+    is_connected: bool = False
+    battery_level: Optional[int] = None
+    last_reading: Optional[datetime] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "smart_devices"
+        indexes = ["user_id", "device_type"]
+
+
+class DeviceReadingDocument(Document):
+    """Device reading model for MongoDB."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    device_id: UUID
+    
+    reading_type: str  # weight, body_fat, hr, bp_systolic, bp_diastolic, glucose
+    value: float
+    unit: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    notes: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "device_readings"
+        indexes = ["user_id", "device_id", "reading_type", "timestamp"]
+
+
+class AccessibilitySettingsDocument(Document):
+    """Accessibility settings model for MongoDB."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    
+    high_contrast_enabled: bool = False
+    text_scale_percent: int = 100
+    font_family: str = "system"
+    color_filter: str = "none"
+    reduce_motion: bool = False
+    screen_reader_enabled: bool = False
+    captions_enabled: bool = True
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "accessibility_settings"
+        indexes = ["user_id"]
+
+
+class UserExperienceDocument(Document):
+    """Stores cumulative learning data about each user for adaptive AI (MongoDB)."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    
+    workout_preferences: Dict[str, Any] = Field(default_factory=dict)
+    meal_preferences: Dict[str, Any] = Field(default_factory=dict)
+    exercise_performance: Dict[str, Any] = Field(default_factory=dict)
+    coaching_feedback: Dict[str, Any] = Field(default_factory=dict)
+    adaptation_params: Dict[str, Any] = Field(default_factory=dict)
+    
+    learning_stage: str = "beginner"
+    preferences_confidence: float = 0.0
+    total_data_points: int = 0
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "user_experiences"
+        indexes = ["user_id"]
+
+
+class ProgressAttributionDocument(Document):
+    """Tracks causal relationships between AI interventions and user progress (MongoDB)."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    
+    intervention_type: str  # workout, meal_plan, coaching, form_check
+    intervention_id: Optional[str] = None
+    intervention_data: Dict[str, Any] = Field(default_factory=dict)
+    
+    outcome_metric: str  # form_score, strength_gain, weight_change, streak
+    outcome_value: float
+    baseline_value: Optional[float] = None
+    
+    attribution_score: float = 0.5
+    time_to_outcome_hours: Optional[float] = None
+    user_feedback: Optional[str] = None  # helpful, not_helpful, neutral
+    
+    intervention_at: Optional[datetime] = None
+    outcome_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "progress_attributions"
+        indexes = ["user_id", "intervention_type"]
+
+
+class ExperienceEventDocument(Document):
+    """Raw event log for all user interactions that contribute to learning (MongoDB)."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    
+    event_type: str  # form_check, workout_completed, meal_logged, etc.
+    event_data: Dict[str, Any] = Field(default_factory=dict)
+    processed: bool = False
+    
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "experience_events"
+        indexes = ["user_id", "event_type", "processed"]
+
+
+class FlowstateSessionDocument(Document):
+    """Flow state tracking session model for MongoDB."""
+    
+    uid: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    
+    flow_score: int = 0  # 0-100
+    hrv: Optional[float] = None
+    focus_score: Optional[int] = None
+    energy_score: Optional[int] = None
+    
+    # Time-series data points (mocked or from device)
+    moments: List[Dict[str, Any]] = Field(default_factory=list)
+    # moments: [{"timestamp": "...", "score": 75}, ...]
+    
+    recommendations: List[str] = Field(default_factory=list)
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Settings:
+        name = "flowstate_sessions"
+        indexes = ["user_id", "created_at"]

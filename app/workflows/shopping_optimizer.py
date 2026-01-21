@@ -286,14 +286,14 @@ Return ONLY valid JSON:
             "recommendation": route_result.get("recommendation", "single_store"),
             "primaryStore": route_result.get("primaryStore", {}),
             "secondaryStore": route_result.get("secondaryStore"),
-            "totalCost": route_result.get("totalCost", 0),
-            "estimatedSavings": route_result.get("estimatedSavings", 0),
-            "shoppingRoute": route_result.get("shoppingRoute", []),
+            "total_cost": route_result.get("totalCost", 0),
+            "estimated_savings": route_result.get("estimatedSavings", 0),
+            "shopping_route": route_result.get("shoppingRoute", []),
             "tips": route_result.get("tips", []),
-            "ingredients": result.results.get("standardize_ingredients", []),
-            "storePrices": result.results.get("estimate_prices", {}),
+            "items": result.results.get("standardize_ingredients", []),
+            "store_prices": result.results.get("estimate_prices", {}),
             "workflowDurationMs": result.total_duration_ms,
-            "aiProvider": "gemini_orchestration"
+            "ai_provider": "gemini_orchestration"
         }
     
     def _format_fallback_response(

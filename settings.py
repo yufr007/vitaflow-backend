@@ -14,9 +14,10 @@ from urllib.parse import urlparse, urlunparse
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
-    # MongoDB - REQUIRED from environment
-    DATABASE_URL: str = Field(..., env="DATABASE_URL", description="MongoDB connection string (required)")
-    DATABASE_NAME: str = Field(default="vitaflow_prod", env="DATABASE_NAME")
+    # MongoDB
+    MONGODB_URL: str = Field(..., env="MONGODB_URL", description="MongoDB connection string (required)")
+    DATABASE_NAME: str = Field(default="vitaflow", env="DATABASE_NAME")
+
     
     # JWT - REQUIRED from environment
     SECRET_KEY: str = Field(..., env="SECRET_KEY", description="JWT signing secret (required)")
@@ -27,7 +28,30 @@ class Settings(BaseSettings):
     # Environment
     ENV: str = Field(default="development", env="ENV")
     DEBUG: bool = Field(default=True, env="DEBUG")
-    
+    # CORS
+    CORS_ORIGINS: str = Field(default="", env="CORS_ORIGINS")
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS origins string into list."""
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        
+        # Always allow production domains and localhost for robust connectivity
+        # This ensures the API works even if the environment variable is missing or incomplete
+        default_domains = [
+            "https://vitaflow.fitness",
+            "https://www.vitaflow.fitness",
+            "https://api.vitaflow.fitness",
+            "http://localhost:5173",
+            "http://localhost:3000"
+        ]
+        
+        for domain in default_domains:
+            if domain not in origins:
+                origins.append(domain)
+                
+        return origins
+
     # Gemini AI (for simple features: form check, basic generation)
     GEMINI_API_KEY: str = Field(..., env="GEMINI_API_KEY", description="Google Gemini API key (required)")
     
@@ -139,8 +163,8 @@ class Settings(BaseSettings):
     
     @property
     def is_mongodb(self) -> bool:
-        """Check if using MongoDB (vs PostgreSQL)."""
-        return self.DATABASE_URL.startswith("mongodb")
+        """Check if using MongoDB."""
+        return self.MONGODB_URL.startswith("mongodb")
     
     @property
     def azure_openai_configured(self) -> bool:
@@ -165,8 +189,8 @@ class Settings(BaseSettings):
     
     def validate_required_settings(self) -> None:
         """Validate that required settings are configured."""
-        if not self.DATABASE_URL:
-            raise ValueError("DATABASE_URL must be set")
+        if not self.MONGODB_URL:
+            raise ValueError("MONGODB_URL must be set")
         if not self.SECRET_KEY:
             raise ValueError("SECRET_KEY must be changed from default in production")
         if not self.GEMINI_API_KEY and not self.AZURE_OPENAI_KEY:

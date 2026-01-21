@@ -14,7 +14,9 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.wearable import WearableDevice
+from app.models.wearable import WearableDevice
 from app.services.wearable_services import get_wearable_service
+from app.websockets.connection_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +38,10 @@ class RealtimeSyncService:
         "smart_scale": 24 * 60 * 60, # Once per day
     }
     
-    def __init__(self, socketio=None):
+    def __init__(self):
         """
         Initialize the real-time sync service.
-        
-        Args:
-            socketio: Socket.IO server instance for emitting events.
         """
-        self.socketio = socketio
         self.active_syncs: Dict[str, asyncio.Task] = {}
         self.logger = logging.getLogger(__name__)
     
@@ -91,14 +89,17 @@ class RealtimeSyncService:
                     metrics_count = await service.sync_health_data(db, current_device)
                     
                     # Emit update to client
-                    if self.socketio and metrics_count > 0:
+                    if metrics_count > 0:
                         await self.emit_update(
                             str(current_device.user_id),
                             {
-                                "device_id": device_id,
-                                "device_type": current_device.device_type,
-                                "metrics_synced": metrics_count,
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "event": "health_metrics_updated",
+                                "data": {
+                                    "device_id": device_id,
+                                    "device_type": current_device.device_type,
+                                    "metrics_synced": metrics_count,
+                                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                                }
                             }
                         )
                     
@@ -169,17 +170,12 @@ class RealtimeSyncService:
             user_id: Target user ID.
             data: Update payload.
         """
-        if self.socketio:
-            try:
-                # Emit to user's room
-                await self.socketio.emit(
-                    "health_metrics_updated",
-                    data,
-                    room=f"user:{user_id}"
-                )
-                self.logger.debug(f"Emitted update to user {user_id}")
-            except Exception as e:
-                self.logger.error(f"Failed to emit update: {e}")
+        try:
+            # Emit to user via ConnectionManager
+            await manager.send_personal_message(data, user_id)
+            self.logger.debug(f"Emitted update to user {user_id}")
+        except Exception as e:
+            self.logger.error(f"Failed to emit update: {e}")
     
     async def manual_sync(
         self,
@@ -201,17 +197,19 @@ class RealtimeSyncService:
             metrics_count = await service.sync_health_data(db, device)
             
             # Emit update
-            if self.socketio:
-                await self.emit_update(
-                    str(device.user_id),
-                    {
+            await self.emit_update(
+                str(device.user_id),
+                {
+                    "event": "health_metrics_updated",
+                    "data": {
                         "device_id": str(device.id),
                         "device_type": device.device_type,
                         "metrics_synced": metrics_count,
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                         "manual": True,
                     }
-                )
+                }
+            )
             
             return {
                 "status": "success",
