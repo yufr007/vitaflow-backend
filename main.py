@@ -17,6 +17,7 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from database import Database
 from settings import settings
 from app.middleware.db_middleware import LazyDatabaseMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -92,28 +93,46 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - Environment-aware configuration
+# Production: Strict explicit origins only
+# Development: Includes localhost variants
+_production_origins = [
+    "https://vitaflow.fitness",
+    "https://www.vitaflow.fitness",
+    # Explicit Vercel deployments (no wildcards!)
+    "https://vitaflow.vercel.app",
+    "https://vitaflow-git-main.vercel.app",
+    # DigitalOcean deployments
+    "https://vitaflow-668nm.ondigitalocean.app",
+    "https://vitaflow-backend-bvfso.ondigitalocean.app",
+]
+
+_development_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:4002",
+    "http://localhost:19006",  # Expo
+    "http://localhost:8081",   # React Native Metro
+]
+
+# Only allow localhost in non-production environments
+_allowed_origins = _production_origins + (
+    _development_origins if settings.ENV != "production" else []
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://vitaflow.fitness",
-        "https://www.vitaflow.fitness",
-        "https://*.vercel.app",
-        "https://vitaflow-668nm.ondigitalocean.app",
-        "https://vitaflow-backend-bvfso.ondigitalocean.app",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:4002",
-        "http://localhost:19006",  # Expo
-        "http://localhost:8081",   # React Native Metro
-    ],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
 )
 
 # Lazy database connection middleware
 app.add_middleware(LazyDatabaseMiddleware)
+
+# Security headers middleware (HSTS, CSP, X-Frame-Options, etc.)
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Health check

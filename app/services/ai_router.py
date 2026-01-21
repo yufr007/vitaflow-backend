@@ -13,7 +13,7 @@ Features:
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from settings import settings
 

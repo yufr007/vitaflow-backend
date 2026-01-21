@@ -14,6 +14,8 @@ from google import genai
 from settings import settings
 from app.services.cache import cache_service
 from app.services.fixed_plans import get_fixed_workout_plan, get_fixed_meal_plan
+from app.services.openstax_service import openstax_service
+from app.services.who_nutrition_service import who_nutrition_service
 
 
 logger = logging.getLogger(__name__)
@@ -301,18 +303,25 @@ Return ONLY valid JSON (no markdown):
             budget = user_profile.get('budget_per_week', 150)
             goal = user_profile.get('goal', user_profile.get('fitness_goal', 'balanced diet'))
             
-            prompt = f"""You are an expert Personal Chef and Nutritionist. Design a 7-day meal plan that feels curated and catered.
+            # Build scientific context from OpenStax and WHO eLENA
+            openstax_context = await self._build_openstax_context("nutrition", goal)
+            who_context = who_nutrition_service.build_ai_context()
+            
+            prompt = f"""You are an expert Personal Chef and Nutritionist backed by peer-reviewed science. Design a 7-day meal plan that feels curated, catered, AND evidence-based.
 
 User Profile:
 - Goal: {goal}
 - Diet: {restrictions}
 - Budget: ${budget}/week
+{openstax_context}
+{who_context}
 
 Chef's Guidelines:
 1. Flavor Profile: Varied but cohesive.
 2. Efficiency: "Cook once, eat twice".
 3. No generic "boiled chicken". Use spices, marinades, and gourmet textures.
 4. Educational Value: Explain WHY each meal supports their goal (build muscle, burn fat, sustain energy).
+5. WHO Compliance: Ensure each day meets WHO sodium (<2g), sugar (<10% energy), and fiber (>25g) guidelines.
 
 Return ONLY valid JSON (no markdown):
 {{
@@ -324,25 +333,32 @@ Return ONLY valid JSON (no markdown):
                     "type": "Breakfast",
                     "name": "...",
                     "calories": 400,
-                    "macros": {{ "protein": 20, "carbs": 45, "fat": 15 }},
+                    "macros": {{ "protein": 20, "carbs": 45, "fat": 15, "fiber": 8, "sugar": 5, "sodium": 0.4 }},
                     "prep_time_minutes": 10,
                     "ingredients": ["...", "..."],
                     "chef_explanation": "Why this meal works: Explain how the macros support their goal. E.g., 'High protein from eggs builds muscle, complex carbs from oats provide sustained energy for your morning workout.'",
                     "macro_breakdown": "Protein: 20g (muscle repair), Carbs: 45g (energy), Fat: 15g (hormone production)",
                     "goal_alignment": "Perfect pre-workout fuel: protein for muscle synthesis, carbs for glycogen, healthy fats for satiety.",
-                    "nutrition_lesson": "Fun fact or tip related to this meal, e.g., 'Oats contain beta-glucan fiber which helps regulate blood sugar and keeps you full longer.'"
+                    "nutrition_lesson": "Fun fact or tip related to this meal, e.g., 'Oats contain beta-glucan fiber which helps regulate blood sugar and keeps you full longer.'",
+                    "scientific_source": "Reference to OpenStax or WHO guideline that supports this meal choice"
                 }}
             ],
-            "daily_totals": {{ "calories": 2000, "protein": 150, "carbs": 200, "fat": 70 }},
-            "daily_summary": "Why today's nutrition works: Explain how the daily macro distribution supports their specific goal (e.g., muscle gain, fat loss, endurance)."
+            "daily_totals": {{ "calories": 2000, "protein": 150, "carbs": 200, "fat": 70, "fiber": 28, "sodium": 1.8 }},
+            "daily_summary": "Why today's nutrition works: Explain how the daily macro distribution supports their specific goal (e.g., muscle gain, fat loss, endurance).",
+            "who_compliance_notes": "Explain how this day meets WHO guidelines: sodium under 2g, fiber over 25g, sugar under 10% of calories."
         }}
     ],
     "chef_tips": ["Educational tips about nutrition, meal prep, or ingredient swaps", "..."],
     "total_estimated_cost": 120.00,
-    "weekly_nutrition_strategy": "Overall explanation of how this week's meal plan progressively supports their fitness goal. E.g., 'Higher carbs on training days (Mon/Wed/Fri) for performance, moderate carbs on rest days for recovery without excess calories.'"
+    "weekly_nutrition_strategy": "Overall explanation of how this week's meal plan progressively supports their fitness goal. E.g., 'Higher carbs on training days (Mon/Wed/Fri) for performance, moderate carbs on rest days for recovery without excess calories.'",
+    "scientific_foundations": ["List key scientific sources that informed this meal plan: OpenStax Nutrition, WHO eLENA guidelines, etc."]
 }}
 
-CRITICAL: Include 'chef_explanation', 'macro_breakdown', 'goal_alignment', and 'nutrition_lesson' for EVERY meal. These educational insights are what make VitaFlow superior to competitors like MyFitnessPal.
+CRITICAL: 
+1. Include 'chef_explanation', 'macro_breakdown', 'goal_alignment', 'nutrition_lesson', and 'scientific_source' for EVERY meal.
+2. Include 'who_compliance_notes' for EVERY day showing how it meets WHO dietary guidelines.
+3. Include 'scientific_foundations' listing the evidence sources.
+These educational insights backed by real science are what make VitaFlow superior to competitors.
 """
 
             response = self.text_model.generate_content(prompt)
@@ -557,6 +573,118 @@ Return ONLY valid JSON (no markdown):
         except Exception as e:
             self.logger.error(f"Recovery assessment generation error: {str(e)}")
             return None
+
+    async def _build_openstax_context(self, context_type: str, focus: str = "") -> str:
+        """
+        Build OpenStax educational context for AI prompts.
+        
+        Adds scientifically-backed citations from OpenStax textbooks
+        to enhance AI response credibility.
+        
+        Args:
+            context_type: Type of context (workout, nutrition, recovery, mental_wellness)
+            focus: Optional focus area for more specific citations
+        
+        Returns:
+            String to inject into AI prompts with educational context
+        """
+        try:
+            if context_type == "workout":
+                citations = await openstax_service.get_citations_for_workout(focus or "exercise")
+            elif context_type == "nutrition":
+                citations = await openstax_service.get_citations_for_nutrition(focus or "balanced")
+            elif context_type == "recovery":
+                citations = await openstax_service.get_citations_for_recovery()
+            elif context_type == "mental_wellness":
+                citations = await openstax_service.get_citations_for_mental_wellness()
+            else:
+                return ""
+            
+            if not citations:
+                return ""
+            
+            context = "\n\nSCIENTIFIC CONTEXT (from OpenStax, CC BY 4.0):"
+            for citation in citations:
+                context += f"\n- {citation.book_title}: {citation.chapter}"
+            context += "\n\nIncorporate this scientific knowledge into your response and cite sources where relevant."
+            
+            return context
+        except Exception as e:
+            self.logger.warning(f"Failed to build OpenStax context: {e}")
+            return ""
+
+    async def generate_brain_training_content(
+        self,
+        topic_title: str,
+        category: str,
+        source_chapter: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate brain training content based on OpenStax Psychology chapter.
+        
+        Used to create new brain training topics from OpenStax source material.
+        
+        Args:
+            topic_title: Title of the brain training topic
+            category: Category (cognition, memory, focus, stress, emotion, motivation)
+            source_chapter: OpenStax chapter reference
+        
+        Returns:
+            Structured brain training topic content
+        """
+        if not self.text_model:
+            self.logger.error("Gemini API key not configured")
+            return None
+        
+        try:
+            openstax_context = await self._build_openstax_context("mental_wellness")
+            
+            prompt = f"""You are an Educational Content Designer creating brain training material for a fitness app.
+
+Create content for a brain training lesson based on:
+- Topic: {topic_title}
+- Category: {category}
+- Source: OpenStax Psychology 2e, {source_chapter}
+{openstax_context}
+
+Rules:
+1. Content must be accurate and based on established psychology
+2. Make it practical and actionable for someone focused on physical fitness
+3. Connect mental concepts to athletic performance where relevant
+4. Include 3 clear sections with key takeaways
+
+Return ONLY valid JSON:
+{{
+    "title": "{topic_title}",
+    "sections": [
+        {{
+            "title": "Section title",
+            "content": "2-3 paragraphs of educational content in markdown",
+            "key_points": ["Key point 1", "Key point 2", "Key point 3"]
+        }}
+    ],
+    "quiz": {{
+        "questions": [
+            {{
+                "question": "...",
+                "options": ["A", "B", "C", "D"],
+                "correct_index": 0,
+                "explanation": "Why this is correct"
+            }}
+        ]
+    }},
+    "practical_exercise": "A 2-minute mental exercise the user can try",
+    "fitness_connection": "How this concept applies to athletic performance"
+}}"""
+
+            response = self.text_model.generate_content(prompt)
+            result = self._extract_json(response.text)
+            return result
+        
+        except Exception as e:
+            self.logger.error(f"Brain training content generation error: {str(e)}")
+            return None
+
 
 # Global Gemini service instance
 gemini_service = GeminiService()
