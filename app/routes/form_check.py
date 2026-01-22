@@ -149,7 +149,7 @@ def exercise_name_to_movement_type(exercise: str) -> MovementType:
 async def analyze_form(
     exercise_name: str = Form(...),
     file: UploadFile = File(...),
-    user_id: str | None = Depends(JWTBearer(auto_error=False))
+    user_id: Optional[str] = Depends(JWTBearer(auto_error=False))
 ):
     # GUEST MODE: If no user, generate random ID for this session
     if not user_id:

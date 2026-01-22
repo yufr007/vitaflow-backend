@@ -2,6 +2,7 @@
 """VitaFlow API - Workout Routes (MongoDB)."""
 
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user_id
 from app.middleware.auth import JWTBearer
@@ -14,7 +15,7 @@ router = APIRouter()
 @router.post("/generate")
 async def generate_workout(
     request: WorkoutRequest,
-    user_id: str | None = Depends(JWTBearer(auto_error=False))
+    user_id: Optional[str] = Depends(JWTBearer(auto_error=False))
 ):
     """Generate personalized workout plan and save to MongoDB."""
     
