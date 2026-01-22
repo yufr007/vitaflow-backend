@@ -146,7 +146,7 @@ def exercise_name_to_movement_type(exercise: str) -> MovementType:
 
 @router.post("/upload")
 async def analyze_form(
-    exercise: str = Form(...),
+    exercise_name: str = Form(...),
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id)
 ):
@@ -208,7 +208,7 @@ async def analyze_form(
         # NEW: Execute full orchestration pipeline
         analysis = await form_check_pipeline.run(
             image_base64=original_base64,
-            exercise=exercise,
+            exercise=exercise_name,
             user_id=user_id,
             mp_results=mp_results
         )
@@ -219,7 +219,7 @@ async def analyze_form(
         # Create Result Record
         form_check = FormCheckDocument(
             user_id=user_id,
-            exercise_name=exercise,
+            exercise_name=exercise_name,
             score=analysis.get("form_score", 0),
             alignment_feedback=analysis.get("alignment_feedback"),
             rom_feedback=analysis.get("rom_feedback"),
