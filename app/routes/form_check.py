@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from app.dependencies import get_current_user_id
+from app.middleware.auth import JWTBearer
 from app.models.mongodb import FormCheckDocument
 from app.services.gemini import gemini_service
 from app.services.physionet_service import physionet_service
@@ -148,8 +149,11 @@ def exercise_name_to_movement_type(exercise: str) -> MovementType:
 async def analyze_form(
     exercise_name: str = Form(...),
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str | None = Depends(JWTBearer(auto_error=False))
 ):
+    # GUEST MODE: If no user, generate random ID for this session
+    if not user_id:
+        user_id = str(uuid.uuid4())
     """
     Analyze exercise form from uploaded image/video.
     Returns Gemini analysis + Image with Skeleton Overlay.

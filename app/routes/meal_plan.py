@@ -5,6 +5,7 @@ import uuid
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies import get_current_user_id
+from app.middleware.auth import JWTBearer
 from app.models.mongodb import UserDocument, MealPlanDocument
 from app.services.ai_router import get_ai_router
 from app.services.pubmed_service import pubmed_service
@@ -19,17 +20,35 @@ router = APIRouter()
 @router.post("/generate")
 async def generate_meal_plan(
     request: MealPlanRequest,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str | None = Depends(JWTBearer(auto_error=False))
 ):
     """Generate personalized meal plan and save to MongoDB."""
-    user = await UserDocument.find_one(UserDocument.uid == uuid.UUID(user_id))
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
     
-    # Update user dietary restrictions if provided
-    if request.dietary_restrictions:
-        user.dietary_restrictions = request.dietary_restrictions
-        await user.save()
+    if not user_id:
+        # GUEST MODE: Create dummy user for demo/investor access
+        guest_id = uuid.uuid4()
+        user = UserDocument(
+            uid=guest_id,
+            email=f"guest_{guest_id}@vitaflow.fitness",
+            hashed_password="guest",
+            name="Guest User",
+            fitness_level="intermediate", # Default for guest
+            goal="balanced_diet", # Default for guest
+            location_city="Sydney",
+            location_state="NSW",
+            location_country="Australia",
+            tier="pro",
+            dietary_restrictions=request.dietary_restrictions or []
+        )
+    else:
+        user = await UserDocument.find_one(UserDocument.uid == uuid.UUID(user_id))
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update user dietary restrictions if provided
+        if request.dietary_restrictions:
+            user.dietary_restrictions = request.dietary_restrictions
+            await user.save()
 
     # Get AI router
     ai_router = await get_ai_router()
