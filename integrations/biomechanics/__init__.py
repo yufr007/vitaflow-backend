@@ -229,7 +229,7 @@ class C3DProcessor:
         self.backend = self._detect_backend(backend)
         self._c3d = None
         
-    def _detect_backend(self, preferred: str) -> str:
+    def _detect_backend(self, preferred: str) -> Optional[str]:
         """Detect available C3D backend"""
         if preferred != "auto":
             return preferred
@@ -250,27 +250,25 @@ class C3DProcessor:
         except ImportError:
             pass
             
-        raise ImportError(
-            "No C3D backend available. Install ezc3d (pip install ezc3d) "
-            "or pyc3dserver (pip install pyc3dserver, Windows only)"
-        )
+        # Don't raise error on init, wait until load() is called
+        return None
+
     
     def load(self, filepath: str) -> Dict[str, Any]:
         """
         Load a C3D file and return extracted data.
-        
-        Returns:
-            Dict containing:
-            - markers: Dict[str, np.ndarray] - marker positions [frames x 3]
-            - analogs: Dict[str, np.ndarray] - analog signals (forces, EMG)
-            - sample_rate: float - marker sample rate (Hz)
-            - analog_rate: float - analog sample rate (Hz)
-            - metadata: Dict - file metadata
         """
+        if not self.backend:
+             raise ImportError(
+                "No C3D backend available. Cannot load C3D files. "
+                "Install ezc3d (pip install ezc3d)."
+            )
+
         if self.backend == "ezc3d":
             return self._load_ezc3d(filepath)
         else:
             return self._load_pyc3dserver(filepath)
+
     
     def _load_ezc3d(self, filepath: str) -> Dict[str, Any]:
         """Load C3D using ezc3d"""

@@ -37,6 +37,8 @@ azure-cognitiveservices-speech==1.35.0
 numpy==1.26.4
 opencv-python-headless==4.10.0.84
 mediapipe==0.10.31
+ezc3d==1.5.11
+
 
 # Error Tracking
 sentry-sdk[fastapi]==1.38.0
