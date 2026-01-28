@@ -9,6 +9,13 @@ from app.routes import (
     shopping,
     coaching,
     subscription,
+    voice_coaching,
+    nutrition_scan,
+    devices,
+    evolution,
+    flowstate,
+    realtime,
+    recovery
 )
 
 __all__ = [
@@ -20,4 +27,12 @@ __all__ = [
     "shopping",
     "coaching",
     "subscription",
+    "voice_coaching",
+    "nutrition_scan",
+    "devices",
+    "evolution",
+    "flowstate",
+    "realtime",
+    "recovery"
 ]
+

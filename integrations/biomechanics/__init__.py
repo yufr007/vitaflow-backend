@@ -25,10 +25,6 @@ import json
 
 logger = logging.getLogger(__name__)
 
-from .form_analyzer import (
-    FormAnalyzer, FormAnalysisResult, FormFeedback, 
-    FormIssue, RiskLevel
-)
 
 
 class DatasetCategory(Enum):
@@ -529,3 +525,11 @@ if __name__ == "__main__":
     injury_datasets = search_datasets(include_injured=True)
     for ds in injury_datasets[:5]:
         print(f"  - {ds.name}: {ds.description}")
+
+
+# Late import to prevent circular dependencies
+from .form_analyzer import (
+    FormAnalyzer, FormAnalysisResult, FormFeedback, 
+    FormIssue, RiskLevel
+)
+

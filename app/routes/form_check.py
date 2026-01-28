@@ -13,10 +13,9 @@ from app.services.physionet_service import physionet_service
 from app.services.form_check_pipeline import form_check_pipeline
 import logging
 
-# Add biomechanics integration to path
-backend_root = Path(__file__).parent.parent.parent.parent / "vitaflow-backend"
-if str(backend_root) not in sys.path:
-    sys.path.insert(0, str(backend_root))
+import logging
+router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Import biomechanics module
 try:
@@ -30,8 +29,6 @@ except ImportError as e:
     BIOMECHANICS_AVAILABLE = False
     logger.warning(f"Biomechanics integration not available: {e}")
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
 
 # Initialize MediaPipe Pose configuration (with fallback for new API)
 mp_pose = None
