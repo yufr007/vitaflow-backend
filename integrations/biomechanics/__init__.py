@@ -25,6 +25,11 @@ import json
 
 logger = logging.getLogger(__name__)
 
+from .form_analyzer import (
+    FormAnalyzer, FormAnalysisResult, FormFeedback, 
+    FormIssue, RiskLevel
+)
+
 
 class DatasetCategory(Enum):
     """Categories of biomechanics datasets"""
